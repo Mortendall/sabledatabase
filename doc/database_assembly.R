@@ -27,59 +27,52 @@ studies_list <- stringr::str_extract(
 names(data_files_list)<- studies_list
 
 #convert to long format
-long_sable <- data_files_list[[1]]
-colnames(long_sable) <- stringr::str_replace(colnames(long_sable),
-                                             pattern = "kcal_",
-                                             replacement = "kcal-")
-system_name <- stringr::str_extract(names(data_files_list[1]),
-                                    pattern = "(?<=_)[:alnum:]+")
-long_sable <- long_sable |>
-  dplyr::mutate(system = system_name,
-                elapsed_h = as.numeric(Date_Time_1-Date_Time_1[1])/360,
-                elapsed_min = as.numeric(Date_Time_1-Date_Time_1[1])/60)|>
-  dplyr::select(-DurationMin_1,
-                -envirorh_1,
-                -envirooccupancy_1,
-                -envirosound_1,
-                -envirotemp_1) |>
-  dplyr::filter(!is.na(Date_Time_1)) |>
-  tidyr::pivot_longer(cols = -c("Date_Time_1",
-                                "envirolightlux_1",
-                                "system",
-                                "elapsed_h",
-                                "elapsed_min"),
-                      names_to = c("parameter","cage_id"),
-                      names_sep = "_") |>
-  tidyr::pivot_wider(names_from = "parameter",
-                     values_from = "value") |>
-  #convert to more CalR resembling format
-  dplyr::rename(ee = `kcal-hr`,
-                feed = foodupa,
-                water = waterupa
-                ) |>
-  dplyr::group_by(cage_id) |>
-  dplyr::mutate(vo2 = vo2*60,
-                #converts vo2 from ml/min to ml/h
-                vco2 = vco2*60,
-                ee.acc = cumsum(ee),
-                feed.acc = cumsum(feed),
-                water.acc = cumsum(water),
-                xytot = xbreak + ybreak
-                )
-
+long_files_list <- purrr::map(data_files_list,
+                              ~prepare_long_format(.))
 source(here::here("doc/metadata_assembly.R"))
 
+#create list
+study_list <- vector(mode = "list",length = length(metadata_list))
+study_list <- purrr::map(study_list,
+                         ~list())
+name_vector<- dplyr::distinct(metadata_frame, RMPP_ID) |>
+  dplyr::pull(RMPP_ID)
+study_list <- magrittr::set_names(study_list, name_vector)
+
+for (i in 1:length(study_list)){
+  #detect matches pr. target
+  matching_studies <- stringr::str_detect(names(long_files_list),
+                                          pattern = names(study_list)[i])
+  study_list[i]<- list(long_files_list[matching_studies])
+}
+
+study_list_collapsed <- purrr::map(study_list,
+                                   ~as.data.frame(do.call(
+                                     rbind, .)))
 
 
 
-sabledatabase <- duckdb::dbConnect(duckdb::duckdb())
+sabledatabase <- duckdb::dbConnect(
+  duckdb::duckdb(
+    dbdir = here::here("data/sabledata.duckdb")
+  ))
 
-sabledatabase
+name_vector <- names(study_list)
+purrr::map(name_vector,
+           ~ duckdb::dbWriteTable(sabledatabase,
+                                  name = .,
+                                  value = study_list_collapsed[[.]],
+                                  overwrite = T
+                                    )
+           )
 
-con <- dbConnect(duckdb::duckdb())
-dm::copy_dm_to(
-  con,
-  dm::dm_pixarfilms(),
-  set_key_constraints = FALSE,
-  temporary = FALSE
-)
+test <- dm::tbl(sabledatabase, "RMPP-2024-062")
+dplyr::tbl(sabledatabase, "RMPP-2024-062") |>
+  dplyr::filter(cage_id == "1") |>
+  head(5) |>
+  collect()
+
+#add metadata
+duckdb::dbWriteTable(sabledatabase,
+                     name = "metadata",
+                     value = metadata_frame, overwrite = T)

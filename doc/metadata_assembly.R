@@ -12,7 +12,8 @@ metadata_list <- purrr::map(metadata_files,
                                                sheet = 2,
                                                col_names = T,col_types = "text"))
 
-metadata_frame <- dplyr::bind_rows(metadata_list)
+metadata_frame <- dplyr::bind_rows(metadata_list) |>
+  dplyr::filter(!is.na(System))
 
 #standardize nomenclature in metadata
 metadata_frame <- metadata_frame |>
