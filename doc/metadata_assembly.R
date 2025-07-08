@@ -52,6 +52,7 @@ metadata_frame <- metadata_frame |>
       Diet == "C"|Diet == "Chow"|Diet == "Chow (normal)"| Diet == "Chow diet"|
         Diet == "Normal chow diet"~ "chow",
       Diet == "H"~"HFD",
+      Diet == "HFDv"~"HFD",
       .default = Diet
     ),
     Temperature = dplyr::case_when(

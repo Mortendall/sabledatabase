@@ -16,7 +16,12 @@ mod_welcome_ui <- function(id) {
     shiny::tagList(
       shiny::column(12),
       bslib::card(shiny::tagList(
-        shiny::h4("Welcome to the Sabledatabase"))),
+        shiny::h4("Welcome to the Sabledatabase"),
+        shinyWidgets::actionBttn(
+          inputId = ns("metadata"),
+          label = "Browse the metadata catalogue",
+          style = "gradient"
+        ))),
       shiny::column(12)
     ),
     shiny::column(12)
@@ -29,6 +34,13 @@ mod_welcome_ui <- function(id) {
 mod_welcome_server <- function(id, parentsession){
   moduleServer(id, function(input, output, session){
     ns <- session$ns
+    shiny::observeEvent(input$metadata,{
+      shiny::updateTabsetPanel(
+        session = parentsession,
+        inputId = "inTabset",
+        selected = "Metadata"
+      )
+    })
 
   })
 }

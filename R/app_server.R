@@ -20,6 +20,10 @@ app_server <- function(input, output, session) {
                               parentsession)
   mod_welcome_server("welcome_1",
                      parentsession)
+  mod_dataexplorer_server("dataexplorer_1",
+                          dataobject,
+                          sabledatabase,
+                          parentsession)
 
   shiny::onStop(function(){
     cat("Closing database connection")

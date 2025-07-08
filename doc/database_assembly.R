@@ -66,13 +66,21 @@ purrr::map(name_vector,
                                     )
            )
 
-test <- dm::tbl(sabledatabase, "RMPP-2024-062")
+test <-
 dplyr::tbl(sabledatabase, "RMPP-2024-062") |>
   dplyr::filter(cage_id == "1") |>
   head(5) |>
-  collect()
+  dplyr::collect()
 
 #add metadata
 duckdb::dbWriteTable(sabledatabase,
                      name = "metadata",
                      value = metadata_frame, overwrite = T)
+
+#load metadata (for optimization)
+
+test <- dm::tbl(sabledatabase, "metadata") |>
+  dplyr::collect()
+
+
+#test summary generator

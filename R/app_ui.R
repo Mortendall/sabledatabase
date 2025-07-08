@@ -10,7 +10,7 @@ app_ui <- function(request) {
     golem_add_external_resources(),
     bslib::page_navbar(
       id = "inTabset",
-      theme = bslib::theme_version(5),
+      theme = bslib::bs_theme(version = 5),
       bslib::nav_panel(title = "Welcome",
                        mod_welcome_ui("welcome_1"),
                        value = "Welcome")
@@ -18,7 +18,10 @@ app_ui <- function(request) {
     bslib::nav_panel(title = "Metadata explorer",
                      mod_metadataexplorer_ui("metadataexplorer_1"),
                      value = "Metadata"
-    )
+    ),
+    bslib::nav_panel(title = "Data Explorer",
+                     mod_dataexplorer_ui("dataexplorer_1"),
+                     value = "Dataexplorer")
   ))
 }
 
