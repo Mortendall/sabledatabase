@@ -4,13 +4,13 @@
 #'
 #' @return a data frame in the long format
 
-prepare_long_format <- function(data_list){
+prepare_long_format <- function(data_list, data_list_names){
   long_sable <- data_list
   colnames(long_sable) <- stringr::str_replace(colnames(long_sable),
                                                pattern = "kcal_",
                                                replacement = "kcal-")
-  system_name <- stringr::str_extract(names(data_files_list[1]),
-                                      pattern = "(?<=_)[:alnum:]+")
+  system_name <- stringr::str_extract(data_list_names,
+                                      pattern = "(?<=_)[:alnum:]+$")
   long_sable <- long_sable |>
     dplyr::mutate(system = system_name,
                   elapsed_h = as.numeric(Date_Time_1-Date_Time_1[1])/360,

@@ -11,27 +11,32 @@ mod_dataexplorer_ui <- function(id) {
   ns <- NS(id)
   bslib::page_fluid(
     bslib::layout_column_wrap(
+      width = 1,
       bslib::card(
         shiny::uiOutput(
           outputId = ns("controlUI")
         )
-      ),
+      )),
+    bslib::layout_column_wrap(
+      width = 1,
       bslib::card(
         shiny::uiOutput(
           outputId = ns("graphUI")
         )
-      ),
-      bslib::card(
-        shiny::uiOutput(
-          outputId = ns("exclusions")
-        )
-      ),
-      bslib::card(
-        shiny::uiOutput(
-          outputId = ns("summary_table")
-        )
-      )
     )
+  ),
+  bslib::layout_column_wrap(
+    width = 1/2,
+    bslib::card(
+      shiny::uiOutput(
+        outputId = ns("summary_table")
+        )),
+      bslib::card(
+          shiny::uiOutput(
+            outputId = ns("exclusions")
+          )
+    )
+  )
   )
 
 }
@@ -39,7 +44,7 @@ mod_dataexplorer_ui <- function(id) {
 #' dataexplorer Server Functions
 #'
 #' @noRd
-mod_dataexplorer_server <- function(id, dataobject, sabledata, parentsession){
+mod_dataexplorer_server <- function(id, dataobject, sabledatabase, parentsession){
   moduleServer(id, function(input, output, session){
     ns <- session$ns
 
@@ -68,15 +73,21 @@ mod_dataexplorer_server <- function(id, dataobject, sabledata, parentsession){
     #####register study selection####
     shiny::observeEvent(input$select_study,{
       req(dataobject$selected_studies)
+      #req(input$display_parameter)
       metadata_study <- dataobject$metadata |>
-        dplyr::filter(RMPP_ID == input$select_study)
+        dplyr::filter(RMPP_ID == input$select_study) |>
+        dplyr::mutate(System = paste0("sable",System),
+                      Unique_ID = paste(System, Cage, sep = "_"))
+      View(metadata_study)
 
       dataobject$study_data<- dm::tbl(sabledatabase, input$select_study) |>
                                          dplyr::collect() |>
+        dplyr::mutate(Unique_ID = paste(system, cage_id,sep = "_")) |>
         dplyr::left_join( metadata_study,
-                         by = c("cage_id"="Cage")) |>
-        dplyr::rename(Age = `Age (weeks)`) |>
-        dplyr::mutate(Unique_ID = paste(System, cage_id,sep = "_"))
+                         by = c("Unique_ID"="Unique_ID")) |>
+        dplyr::rename(Age = `Age (weeks)`)
+
+      View(dataobject$study_data)
 
 
     })
@@ -85,19 +96,24 @@ mod_dataexplorer_server <- function(id, dataobject, sabledata, parentsession){
 
     output$graphUI <- shiny::renderUI({
       req(dataobject$selected_studies)
+      req(dataobject$study_data)
+
+      col_options <- dplyr::slice_head(dataobject$study_data, n=1) |>
+        dplyr::select(-Date_Time_1, -envirolightlux_1, -elapsed_h, -elapsed_min,
+                      -bodytemp)
+      col_options <- colnames(col_options)
       shiny::tagList(
         shiny::selectizeInput(
           inputId = ns("display_parameter"),
           label = "Select parameter to display",
-          choices = c("vo2", "vco2", "vh2o", "ee","rq",  "feed", "water",
-                      "waterupb", "bodymass", "xbreak", "si13c", "ee.acc",
-                      "feed.acc","water.acc","xytot"),
+          choices = col_options,
+          selected = "vo2",
           options = list(dropdownParent = "body")
         ),
         shiny::selectizeInput(
           inputId = ns("color_by"),
           label = "Group by:",
-          choices = c("Unique_ID", "cage_id", "System", "Gender", "Age",
+          choices = c("Unique_ID", "cage_id", "system", "Gender", "Age",
                       "Genotype", "Strain", "Temperature", "Treatment"),
           options = list(dropdownParent = "body")
         ),
@@ -110,6 +126,10 @@ mod_dataexplorer_server <- function(id, dataobject, sabledata, parentsession){
     #####render plotly graph####
 
     output$study_summary <- shiny::renderPlot({
+      req(input$display_parameter)
+      req(input$select_study)
+      req(input$color_by)
+      req(dataobject$study_data)
 
      ggplot2::ggplot(dataobject$study_data,
                       ggplot2::aes_string(
@@ -117,7 +137,9 @@ mod_dataexplorer_server <- function(id, dataobject, sabledata, parentsession){
                         y = input$display_parameter,
                         color = input$color_by
                       ))+
-        ggplot2::geom_line()
+        ggplot2::geom_line()+
+       ggplot2::theme_bw(base_size = 18,
+                        base_line_size = 2)
     })
 
     #####UI for exclusion parameters####
@@ -150,6 +172,7 @@ mod_dataexplorer_server <- function(id, dataobject, sabledata, parentsession){
     })
 
     output$summary_table <- shiny::renderUI({
+      req(input$display_parameter)
       shiny::tableOutput(
         outputId = ns("summary_table_server")
       )
@@ -157,6 +180,7 @@ mod_dataexplorer_server <- function(id, dataobject, sabledata, parentsession){
 
     #####metadata table####
     output$summary_table_server <- shiny::renderTable({
+      req(input$display_parameter)
      displayed_data <-  dataobject$study_data |>
        dplyr::group_by(Unique_ID) |>
        dplyr::summarise(Mean =mean(.data[[input$display_parameter]]),

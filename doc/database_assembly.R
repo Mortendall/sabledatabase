@@ -21,14 +21,14 @@ data_files_list <- purrr::map(data_files_list,
 
 studies_list <- stringr::str_extract(
   names(data_files_list),
-  pattern = "(?<=/)RMPP-[:digit:]{4}-[:digit:]{3}B?_?[:alnum:]*_[:alnum:]+(?=\\.csv)"
+  pattern = "(?<=/)RMPP-[:digit:]{4}-[:digit:]{3}A?B?_?[:alnum:]*_[:alnum:]+(?=\\.csv)"
                                      )
 
 names(data_files_list)<- studies_list
 
 #convert to long format
-long_files_list <- purrr::map(data_files_list,
-                              ~prepare_long_format(.))
+long_files_list <- purrr::map2(data_files_list,studies_list,
+                              ~prepare_long_format(.x,.y))
 source(here::here("doc/metadata_assembly.R"))
 
 #create list
@@ -66,21 +66,25 @@ purrr::map(name_vector,
                                     )
            )
 
-test <-
-dplyr::tbl(sabledatabase, "RMPP-2024-062") |>
-  dplyr::filter(cage_id == "1") |>
-  head(5) |>
-  dplyr::collect()
-
-#add metadata
 duckdb::dbWriteTable(sabledatabase,
                      name = "metadata",
                      value = metadata_frame, overwrite = T)
 
-#load metadata (for optimization)
+duckdb::dbDisconnect(sabledatabase)
 
-test <- dm::tbl(sabledatabase, "metadata") |>
-  dplyr::collect()
+# test <-
+# dplyr::tbl(sabledatabase, "RMPP-2024-062") |>
+#   dplyr::filter(cage_id == "1") |>
+#   head(5) |>
+#   dplyr::collect()
+#
+# #add metadata
+#
+#
+# #load metadata (for optimization)
+#
+# test <- dm::tbl(sabledatabase, "metadata") |>
+#   dplyr::collect()
 
 
 #test summary generator

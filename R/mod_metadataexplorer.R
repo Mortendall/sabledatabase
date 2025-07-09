@@ -229,37 +229,39 @@ mod_metadataexplorer_server <- function(id,
       }
 
       #convert age to numeric
+      if(length(selected_studies[,1]!=0)){
+        selected_studies <- selected_studies |>
+          dplyr::mutate(numeric_age = as.numeric(stringr::str_remove(`Age (weeks)`,
+                                                                     pattern = "-[:digit:]+"))) |>
+          dplyr::filter(numeric_age>= input$Age[1]&
+                          numeric_age<=input$Age[2]) |>
+          dplyr::select(-numeric_age)
 
-      selected_studies <- selected_studies |>
-        dplyr::mutate(numeric_age = as.numeric(stringr::str_remove(`Age (weeks)`,
-                                                        pattern = "-[:digit:]+"))) |>
-        dplyr::filter(numeric_age>= input$Age[1]&
-                        numeric_age<=input$Age[2]) |>
-        dplyr::select(-numeric_age)
+        #generate summary of selected studies
 
-      #generate summary of selected studies
-
-      selected_studies <- selected_studies |>
-        dplyr::group_by(RMPP_ID) |>
-        dplyr::summarise(
-          System = paste(unique(System),
-                         collapse = ", "),
-          Gender = paste(unique(Gender),
-                         collapse = ", "),
-          Age = paste(unique(`Age (weeks)`),
-                         collapse = ", "),
-          Genotype = paste(unique(Genotype),
+        selected_studies <- selected_studies |>
+          dplyr::group_by(RMPP_ID) |>
+          dplyr::summarise(
+            System = paste(unique(System),
                            collapse = ", "),
-          Strain = paste(unique(Strain),
+            Gender = paste(unique(Gender),
+                           collapse = ", "),
+            Age = paste(unique(`Age (weeks)`),
+                        collapse = ", "),
+            Genotype = paste(unique(Genotype),
+                             collapse = ", "),
+            Strain = paste(unique(Strain),
+                           collapse = ", "),
+            Diet = paste(unique(Diet),
                          collapse = ", "),
-          Diet = paste(unique(Diet),
-                       collapse = ", "),
-          Temperature = paste(unique(Temperature),
-                              collapse = ", "),
-          Treatment = paste(unique(Treatment),
-                            collapse = ", ")
-        )
-      dataobject$selected_studies<- selected_studies
+            Temperature = paste(unique(Temperature),
+                                collapse = ", "),
+            Treatment = paste(unique(Treatment),
+                              collapse = ", ")
+          )
+        dataobject$selected_studies<- selected_studies
+      }
+
     })
 
     #####Go to next page####
