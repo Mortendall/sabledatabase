@@ -78,7 +78,6 @@ mod_dataexplorer_server <- function(id, dataobject, sabledatabase, parentsession
         dplyr::filter(RMPP_ID == input$select_study) |>
         dplyr::mutate(System = paste0("sable",System),
                       Unique_ID = paste(System, Cage, sep = "_"))
-      View(metadata_study)
 
       dataobject$study_data<- dm::tbl(sabledatabase, input$select_study) |>
                                          dplyr::collect() |>
@@ -86,10 +85,6 @@ mod_dataexplorer_server <- function(id, dataobject, sabledatabase, parentsession
         dplyr::left_join( metadata_study,
                          by = c("Unique_ID"="Unique_ID")) |>
         dplyr::rename(Age = `Age (weeks)`)
-
-      View(dataobject$study_data)
-
-
     })
 
     #####Graph UI####
@@ -99,47 +94,127 @@ mod_dataexplorer_server <- function(id, dataobject, sabledatabase, parentsession
       req(dataobject$study_data)
 
       col_options <- dplyr::slice_head(dataobject$study_data, n=1) |>
+        dplyr::mutate(`Age (weeks)`=NA) |>
         dplyr::select(-Date_Time_1, -envirolightlux_1, -elapsed_h, -elapsed_min,
-                      -bodytemp)
+                      -bodytemp, -colnames(dataobject$metadata))
       col_options <- colnames(col_options)
-      shiny::tagList(
-        shiny::selectizeInput(
-          inputId = ns("display_parameter"),
-          label = "Select parameter to display",
-          choices = col_options,
-          selected = "vo2",
-          options = list(dropdownParent = "body")
+
+
+
+      shiny::fluidRow(
+        shiny::column(width = 2,
+                      shiny::selectizeInput(
+                        inputId = ns("display_parameter"),
+                        label = "Select parameter to display",
+                        choices = col_options,
+                        selected = "vo2",
+                        options = list(dropdownParent = "body")
+                      )
+                      ),
+        shiny::column(width = 2,
+                      shiny::selectizeInput(
+                        inputId = ns("color_by"),
+                        label = "Group by:",
+                        choices = c("Unique_ID", "cage_id", "system", "Gender", "Age",
+                                    "Genotype", "Strain", "Temperature", "Treatment"),
+                        options = list(dropdownParent = "body")
+                      )
+                      ),
+        shiny::uiOutput(
+          outputId = ns("y_controls")
         ),
-        shiny::selectizeInput(
-          inputId = ns("color_by"),
-          label = "Group by:",
-          choices = c("Unique_ID", "cage_id", "system", "Gender", "Age",
-                      "Genotype", "Strain", "Temperature", "Treatment"),
-          options = list(dropdownParent = "body")
-        ),
+        shiny::column(width = 2,
+                      shinyWidgets::prettySwitch(
+                        inputId = ns("summarize"),
+                        label = "Display data summaried for selected group",
+                        value = FALSE
+                      )),
         shiny::plotOutput(
           outputId = ns("study_summary")
+        ),
+        shiny::uiOutput(
+          outputId = ns("slidersettings")
         )
       )
     })
 
-    #####render plotly graph####
+    output$y_controls <- shiny::renderUI({
+      req(input$display_parameter)
+      max_y <- dataobject$study_data |>
+        dplyr::pull(input$display_parameter)
+      max_y <- max(max_y)
+
+      shiny::tagList(shiny::column(width = 2,
+                    shiny::numericInput(
+                      inputId = ns("miny"),
+                      label = "set Y axis minimum",
+                      min = 0,
+                      max = max_y,
+                      value = 0,
+                      width = "80%"
+                    )),
+      shiny::column(width = 2,
+                    shiny::numericInput(
+                      inputId = ns("maxy"),
+                      label = "set Y axis maximum",
+                      min = 0,
+                      max = max_y,
+                      value = max_y,
+                      width = "80%"
+                    )))
+    })
+
+    #####render graph####
 
     output$study_summary <- shiny::renderPlot({
       req(input$display_parameter)
       req(input$select_study)
       req(input$color_by)
       req(dataobject$study_data)
+      req(input$miny)
+      req(input$maxy)
+      req(input$selectrange)
+      if(isFALSE(input$summarize)){
+        summary_plot <- ggplot2::ggplot(dataobject$study_data,
+                        ggplot2::aes_string(
+                          x = "elapsed_min/60",
+                          y = input$display_parameter,
+                          color = input$color_by
+                        ))+
+          ggplot2::geom_line()+
+          ggplot2::theme_bw(base_size = 18,
+                            base_line_size = 2)+
+          ggplot2::ylim(input$miny,
+                        input$maxy)+
+          ggplot2::xlab("Elapsed hours")+
+        ggplot2::xlim(input$selectrange[1],
+                      input$selectrange[2])
+      }
+      else{
+        rendered_data <- dataobject$study_data |>
+          dplyr::group_by(!!rlang::sym(input$color_by),elapsed_min) |>
+          dplyr::summarise(mean = mean(.data[[input$display_parameter]],
+                                       na.rm = TRUE))
 
-     ggplot2::ggplot(dataobject$study_data,
-                      ggplot2::aes_string(
-                        x = "Date_Time_1",
-                        y = input$display_parameter,
-                        color = input$color_by
-                      ))+
-        ggplot2::geom_line()+
-       ggplot2::theme_bw(base_size = 18,
-                        base_line_size = 2)
+        summary_plot <- ggplot2::ggplot(rendered_data,
+                        ggplot2::aes_string(
+                          x = "elapsed_min/60",
+                          y = "mean",
+                          color = input$color_by
+                        ))+
+          ggplot2::geom_line()+
+          ggplot2::theme_bw(base_size = 18,
+                            base_line_size = 2)+
+          ggplot2::ylim(input$miny,
+                        input$maxy)+
+          ggplot2::ylab(input$displayed_parameter)+
+          ggplot2::xlab("Elapsed hours")+
+          ggplot2::xlim(input$selectrange[1],
+                        input$selectrange[2])
+      }
+
+      summary_plot
+
     })
 
     #####UI for exclusion parameters####
@@ -156,11 +231,20 @@ mod_dataexplorer_server <- function(id, dataobject, sabledatabase, parentsession
         shinyWidgets::actionBttn(
           inputId = ns("exclude_cages"),
           label = "Exclude cages",
-          style = "jelly",
-          width = "40%"
+          style = "gradient",
+          size = "sm"
         ),
-        shiny::tableOutput(
-          outputId = ns("metadata")
+        shinyWidgets::actionBttn(
+          inputId =ns("add_data"),
+          label = "Add selected groups and data window to data processing",
+          style = "gradient",
+          size = "sm"
+        ),
+        shinyWidgets::actionBttn(
+          inputId = ns("add_data"),
+          label = "Go to data processing",
+          style = "gradient",
+          size = "sm"
         )
       )
     })
@@ -184,9 +268,25 @@ mod_dataexplorer_server <- function(id, dataobject, sabledatabase, parentsession
      displayed_data <-  dataobject$study_data |>
        dplyr::group_by(Unique_ID) |>
        dplyr::summarise(Mean =mean(.data[[input$display_parameter]]),
-                        stderr =sd(.data[[input$display_parameter]]))
+                        stderr =stats::sd(.data[[input$display_parameter]]))
 
      displayed_data
+    })
+
+    #####Slider settings####
+    output$slidersettings <- shiny::renderUI({
+      req(dataobject$study_data)
+        shiny::sliderInput(
+          inputId = ns("selectrange"),
+          label = "Select data range",
+          min = min(dataobject$study_data$elapsed_min)/60,
+          max = max(dataobject$study_data$elapsed_min)/60,
+          value = c(min(dataobject$study_data$elapsed_min)/60,
+                       max(dataobject$study_data$elapsed_min)/60
+                       ),
+          width = "350%",
+          step = 1
+        )
     })
 
   })

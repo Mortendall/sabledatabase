@@ -13,7 +13,7 @@ prepare_long_format <- function(data_list, data_list_names){
                                       pattern = "(?<=_)[:alnum:]+$")
   long_sable <- long_sable |>
     dplyr::mutate(system = system_name,
-                  elapsed_h = as.numeric(Date_Time_1-Date_Time_1[1])/360,
+                  elapsed_h = as.numeric(Date_Time_1-Date_Time_1[1])/3600,
                   elapsed_min = as.numeric(Date_Time_1-Date_Time_1[1])/60)
 
   if("envirolightlux_2"%in%colnames(long_sable)){

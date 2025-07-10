@@ -38,8 +38,20 @@ mod_metadataexplorer_server <- function(id,
       shiny::tagList(
       bslib::layout_column_wrap(
         bslib::card(
-          shiny::h5("Select the criteria you want to filter studies by. Once you
-                    are happy with the parameters, press \"find studies\" ")
+          shiny::tagList(
+            shiny::h5("Select the criteria you want to filter studies by. Once you
+                    are happy with the parameters, press \"find studies\" "),
+            shinyWidgets::prettyCheckbox(
+              inputId = ns("exact"),
+              label = "Press to receive exact hits only",
+              value = FALSE
+            ),
+            shinyWidgets::actionBttn(
+              inputId = ns("find_studies"),
+              label = "Find studies with selected parameters",
+              style = "fill"
+            )
+            )
         )
       ),
       bslib::layout_columns(
@@ -53,8 +65,7 @@ mod_metadataexplorer_server <- function(id,
                           choices = unique(dataobject$metadata$Gender),
                           label = "Select Gender(s)",
                           options = list(dropdownParent = 'body'),
-                          multiple = TRUE,
-                          selected = c("Male", "Female")
+                          multiple = TRUE
                         )
                       ),
                       bslib::card(
@@ -73,15 +84,7 @@ mod_metadataexplorer_server <- function(id,
                           choices = unique(dataobject$metadata$Diet),
                           label = "Select diet(s)",
                           options = list(dropdownParent = 'body'),
-                          selected = "chow",
                           multiple = TRUE
-                        )
-                      ),
-                      bslib::card(
-                        shinyWidgets::actionBttn(
-                          inputId = ns("find_studies"),
-                          label = "Find studies with selected parameters",
-                          style = "fill"
                         )
                       )))
         ,
@@ -117,8 +120,7 @@ mod_metadataexplorer_server <- function(id,
                               choices = unique(dataobject$metadata$Temperature),
                               options = list(dropdownParent = 'body'),
                               multiple = TRUE,
-                              label = "Select one or more temperature degrees",
-                              selected = c("4","22","23", "RT")
+                              label = "Select one or more temperature degrees"
                             )
                           )
                         ))
@@ -143,8 +145,7 @@ mod_metadataexplorer_server <- function(id,
                             choices = unique(dataobject$metadata$System),
                             label = "Select Sable system",
                             options = list(dropdownParent = "body"),
-                            multiple = TRUE,
-                            selected = c("1","2","3","4")
+                            multiple = TRUE
                           )
                         )
                         )
@@ -209,14 +210,25 @@ mod_metadataexplorer_server <- function(id,
     #####Filter studies####
 
     shiny::observeEvent(input$find_studies,{
+      if(isTRUE(input$exact)){
+        selected_studies <- dataobject$metadata |>
+          dplyr::filter(Gender %in% input$Gender&
+                          Strain %in% input$Strain&
+                          Diet %in% input$Diet&
+                          Temperature %in% input$Temperature&
+                          System %in% input$System
+          )
+      }
+      else{
+        selected_studies <- dataobject$metadata |>
+          dplyr::filter(Gender %in% input$Gender|
+                          Strain %in% input$Strain|
+                          Diet %in% input$Diet|
+                          Temperature %in% input$Temperature|
+                          System %in% input$System
+          )
+      }
 
-      selected_studies <- dataobject$metadata |>
-        dplyr::filter(Gender %in% input$Gender&
-                        Strain %in% input$Strain&
-                        Diet %in% input$Diet&
-                        Temperature %in% input$Temperature&
-                        System %in% input$System
-                        )
 
       if(isTRUE(input$display_genotype)){
         selected_studies <- selected_studies |>
