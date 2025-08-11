@@ -21,7 +21,10 @@ app_ui <- function(request) {
     ),
     bslib::nav_panel(title = "Data Explorer",
                      mod_dataexplorer_ui("dataexplorer_1"),
-                     value = "Dataexplorer")
+                     value = "Dataexplorer"),
+    bslib::nav_panel(title = "Assembled Data",
+                     mod_assembled_data_ui("assembled_data_1"),
+                     value = "Assembleddata")
   ))
 }
 

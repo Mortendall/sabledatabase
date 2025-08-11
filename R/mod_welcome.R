@@ -16,7 +16,7 @@ mod_welcome_ui <- function(id) {
     shiny::tagList(
       shiny::column(12),
       bslib::card(shiny::tagList(
-        shiny::h4("Welcome to the Sabledatabase"),
+        shiny::HTML("<center><h4>Welcome to the Sabledatabase</h4></center>"),
         shinyWidgets::actionBttn(
           inputId = ns("metadata"),
           label = "Browse the metadata catalogue",

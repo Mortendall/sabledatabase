@@ -84,7 +84,8 @@ mod_dataexplorer_server <- function(id, dataobject, sabledatabase, parentsession
         dplyr::mutate(Unique_ID = paste(system, cage_id,sep = "_")) |>
         dplyr::left_join( metadata_study,
                          by = c("Unique_ID"="Unique_ID")) |>
-        dplyr::rename(Age = `Age (weeks)`)
+        dplyr::rename(Age = `Age (weeks)`) |>
+        dplyr::filter(!is.na(System))
     })
 
     #####Graph UI####
@@ -241,7 +242,7 @@ mod_dataexplorer_server <- function(id, dataobject, sabledatabase, parentsession
           size = "sm"
         ),
         shinyWidgets::actionBttn(
-          inputId = ns("add_data"),
+          inputId = ns("data_processing"),
           label = "Go to data processing",
           style = "gradient",
           size = "sm"
@@ -287,6 +288,65 @@ mod_dataexplorer_server <- function(id, dataobject, sabledatabase, parentsession
           width = "350%",
           step = 1
         )
+    })
+
+    #####Add selected data to further processing####
+    shiny::observeEvent(input$add_data,{
+      if(is.null(dataobject$assembled_data)){
+        dataobject$assembled_data <- dataobject$study_data |>
+          dplyr::filter(elapsed_min/60 >= input$selectrange[1]&
+                          elapsed_min/60 <= input$selectrange[2])
+        shiny::showNotification("Data added to assembled data list. Please go
+                                to assembled data to explore further",
+                                duration = 7)
+      }
+      else{
+        if(isTRUE(all(colnames(dataobject$assembled_data)%in% colnames(dataobject$study_data))&
+                  all(colnames(dataobject$study_data)%in% colnames(dataobject$assembled_data))
+                  )){
+          selected_data <- dataobject$study_data |>
+            dplyr::filter(elapsed_min/60 >= input$selectrange[1]&
+                            elapsed_min/60 <= input$selectrange[2])
+          dataobject$assembled_data <- dplyr::rows_append(dataobject$assembled_data,
+                                                          selected_data)
+          shiny::showNotification("Data added to assembled data list. Please go
+                                to assembled data to explore further",
+                                duration = 7)
+
+        }
+        #if cols are missing from either dataset, add them as NA
+        else{
+          cols_assembled <- colnames(dataobject$assembled_data)
+          cols_dataset <- colnames(dataobject$study_data)
+          missing_cols_assembled <- cols_dataset[!cols_dataset %in% cols_assembled]
+          if(length(missing_cols_assembled)!=0){
+            for (i in 1:length(missing_cols_assembled)){
+              new_col <- missing_cols_assembled[i]
+              dataobject$assembled_data <- dataobject$assembled_data |>
+                dplyr::mutate(!! paste0(new_col) := as.numeric(NA))
+            }
+          }
+          missing_cols_dataset <- cols_assembled[!cols_assembled %in% cols_dataset]
+          selected_data <- dataobject$study_data
+          if (length(missing_cols_dataset)!=0){
+            for (i in 1:length(missing_cols_dataset)){
+              new_col <- missing_cols_dataset[i]
+              selected_data <- selected_data |>
+                dplyr::mutate(!! paste0(new_col) := as.numeric(NA))
+            }
+          }
+
+          selected_data <- selected_data |>
+            dplyr::filter(elapsed_min/60 >= input$selectrange[1]&
+                            elapsed_min/60 <= input$selectrange[2])
+          dataobject$assembled_data <- dplyr::rows_append(dataobject$assembled_data,
+                                                          selected_data)
+          shiny::showNotification("Data added to assembled data list. Please go
+                                to assembled data to explore further",
+                                duration = 7)
+        }
+
+      }
     })
 
   })
