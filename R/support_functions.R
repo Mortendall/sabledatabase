@@ -1,6 +1,7 @@
 #' prepare_long_format
 #'
 #' @param data_list a csv data file in the wide format
+#' @param data_list_names a vector of study names
 #'
 #' @return a data frame in the long format
 
@@ -56,16 +57,16 @@ prepare_long_format <- function(data_list, data_list_names){
                        values_from = "value") |>
     #convert to more CalR resembling format
     dplyr::rename(ee = `kcal-hr`,
-                  feed = foodupa,
-                  water = waterupa
+                  feed.acc = foodupa,
+                  water.acc = waterupa
     ) |>
     dplyr::group_by(cage_id) |>
     dplyr::mutate(vo2 = vo2*60,
                   #converts vo2 from ml/min to ml/h
                   vco2 = vco2*60,
                   ee.acc = cumsum(ee),
-                  feed.acc = cumsum(feed),
-                  water.acc = cumsum(water),
+                  feed = feed.acc - dplyr::lag(feed.acc, default = 0),
+                  water = water.acc - dplyr::lag(water.acc, default = 0),
                   xytot = xbreak + ybreak
     )
   return(long_sable)

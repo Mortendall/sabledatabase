@@ -295,7 +295,8 @@ mod_dataexplorer_server <- function(id, dataobject, sabledatabase, parentsession
       if(is.null(dataobject$assembled_data)){
         dataobject$assembled_data <- dataobject$study_data |>
           dplyr::filter(elapsed_min/60 >= input$selectrange[1]&
-                          elapsed_min/60 <= input$selectrange[2])
+                          elapsed_min/60 <= input$selectrange[2])|>
+          dplyr::mutate(hour =lubridate::hour(Date_Time_1))
         shiny::showNotification("Data added to assembled data list. Please go
                                 to assembled data to explore further",
                                 duration = 7)
@@ -308,7 +309,8 @@ mod_dataexplorer_server <- function(id, dataobject, sabledatabase, parentsession
             dplyr::filter(elapsed_min/60 >= input$selectrange[1]&
                             elapsed_min/60 <= input$selectrange[2])
           dataobject$assembled_data <- dplyr::rows_append(dataobject$assembled_data,
-                                                          selected_data)
+                                                          selected_data)|>
+            dplyr::mutate(hour =lubridate::hour(Date_Time_1))
           shiny::showNotification("Data added to assembled data list. Please go
                                 to assembled data to explore further",
                                 duration = 7)
@@ -340,7 +342,8 @@ mod_dataexplorer_server <- function(id, dataobject, sabledatabase, parentsession
             dplyr::filter(elapsed_min/60 >= input$selectrange[1]&
                             elapsed_min/60 <= input$selectrange[2])
           dataobject$assembled_data <- dplyr::rows_append(dataobject$assembled_data,
-                                                          selected_data)
+                                                          selected_data) |>
+            dplyr::mutate(hour =lubridate::hour(Date_Time_1))
           shiny::showNotification("Data added to assembled data list. Please go
                                 to assembled data to explore further",
                                 duration = 7)

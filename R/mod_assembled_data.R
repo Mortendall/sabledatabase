@@ -17,6 +17,11 @@ mod_assembled_data_ui <- function(id) {
           shiny::uiOutput(
             outputId = ns("assembled_graph")
           )
+        ),
+        bslib::card(
+          shiny::uiOutput(
+            outputId = ns("circadian_average")
+          )
         )
       )
     )
@@ -75,6 +80,9 @@ mod_assembled_data_server <- function(id,
                     )),
       shiny::plotOutput(
         outputId = ns("assembled_figure")
+      ),
+      shiny::plotOutput(
+        outputId = ns("circadian_average")
       ))
     })
 
@@ -145,6 +153,40 @@ mod_assembled_data_server <- function(id,
                                      value = max_y,
                                      width = "80%"
                                    )))
+    })
+
+    #####circadian_average####
+    #CHECK WHY THIS ISNT WORKING
+    output$circadian_average <- shiny::renderUI({
+      req(dataobject$assembled_data)
+
+    })
+
+    output$circadian_average <- shiny::renderPlot({
+      req(input$miny)
+      req(input$maxy)
+      req(dataobject$assembled_data)
+
+      circadian_data <- dataobject$assembled_data |>
+        dplyr::group_by(!!rlang::sym(input$color_by), hour ) |>
+        dplyr::summarise(mean = mean(.data[[input$display_parameter]],
+                                     na.rm = TRUE))
+
+      ggplot2::ggplot(circadian_data,
+                      ggplot2::aes_string(
+                        x = "hour",
+                        y = "mean",
+                        color = input$color_by
+                      ))+
+        ggplot2::geom_line()+
+        ggplot2::theme_bw(base_size = 18,
+                          base_line_size = 2)+
+        ggplot2::ylim(input$miny,
+                      input$maxy)+
+        ggplot2::ylab(input$display_parameter)+
+        ggplot2::xlab("Elapsed hours")
+
+
     })
 
   })
