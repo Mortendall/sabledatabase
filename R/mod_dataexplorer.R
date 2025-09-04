@@ -29,7 +29,7 @@ mod_dataexplorer_ui <- function(id) {
     width = 1/2,
     bslib::card(
       shiny::uiOutput(
-        outputId = ns("summary_table")
+        outputId = ns("summary_plot")
         )),
       bslib::card(
           shiny::uiOutput(
@@ -255,23 +255,104 @@ mod_dataexplorer_server <- function(id, dataobject, sabledatabase, parentsession
       dataobject$study_data <- dataobject$study_data |>
         dplyr::filter(!Unique_ID %in% input$exclude_list)
     })
-
-    output$summary_table <- shiny::renderUI({
+#ADD PROPER LABELING OF AXIS
+    output$summary_plot <- shiny::renderUI({
       req(input$display_parameter)
-      shiny::tableOutput(
-        outputId = ns("summary_table_server")
+      shiny::tagList(
+        shiny::selectizeInput(
+          inputId = ns("select_xy"),
+          label = "Select a parameter for the Y-axis",
+          choices = c("ee", "feed", "vo2", "vco2"),
+          selected= "ee",
+          options = list(dropdownParent = "body"),
+          multiple = FALSE
+        ),
+        shiny::selectizeInput(
+          inputId = ns("select_coloring_xy"),
+          label = "Select coloring for plot",
+          choices = c("Unique_ID", "Gender", "Age",
+                      "Genotype", "Strain", "Temperature", "Treatment"),
+          selected = "Treatment",
+          options = list(dropdownParent = "body")
+        ),
+        plotly::plotlyOutput(
+          outputId = ns("summary_plot_server")
+        ),
+        shiny::tableOutput(
+          outputId = ns("anovatable")
+        )
       )
+
     })
 
-    #####metadata table####
-    output$summary_table_server <- shiny::renderTable({
+    #####summary plot####
+    output$summary_plot_server <- plotly::renderPlotly({
       req(input$display_parameter)
+      metadata_study <- dataobject$metadata |>
+        dplyr::filter(RMPP_ID == input$select_study) |>
+        dplyr::mutate(System = paste0("sable",System),
+                      Unique_ID = paste(System, Cage, sep = "_")) |>
+      dplyr::rename(Age = `Age (weeks)`) |>
+        dplyr::filter(!is.na(System))
+
      displayed_data <-  dataobject$study_data |>
        dplyr::group_by(Unique_ID) |>
-       dplyr::summarise(Mean =mean(.data[[input$display_parameter]]),
-                        stderr =stats::sd(.data[[input$display_parameter]]))
+       dplyr::summarise(ee = mean(ee),
+                        feed = mean(feed),
+                        bodymass = mean(bodymass),
+                        vo2 = mean(vo2),
+                        vco2 = mean(vco2)) |>
+       dplyr::left_join( metadata_study,
+                         by = c("Unique_ID"="Unique_ID"))
 
-     displayed_data
+     xy_plot <- ggplot2::ggplot(
+       data = displayed_data,
+       mapping = ggplot2::aes_string(
+         x = "bodymass",
+         y  = input$select_xy,
+         color = input$select_coloring_xy,
+         label = "Unique_ID"
+       )
+     )+
+       ggplot2::geom_point(size = 8)+
+       ggplot2::geom_smooth(method = "lm",
+                            se = FALSE)+
+       ggplot2::theme_bw()
+
+     xy_plotly <- plotly::ggplotly(xy_plot)
+
+     xy_plotly
+
+    })
+
+    output$anovatable <- shiny::renderTable({
+      req(input$display_parameter)
+      metadata_study <- dataobject$metadata |>
+        dplyr::filter(RMPP_ID == input$select_study) |>
+        dplyr::mutate(System = paste0("sable",System),
+                      Unique_ID = paste(System, Cage, sep = "_")) |>
+        dplyr::rename(Age = `Age (weeks)`) |>
+        dplyr::filter(!is.na(System))
+
+      displayed_data <-  dataobject$study_data |>
+        dplyr::group_by(Unique_ID) |>
+        dplyr::summarise(ee = mean(ee),
+                         feed = mean(feed),
+                         bodymass = mean(bodymass),
+                         vo2 = mean(vo2),
+                         vco2 = mean(vco2)) |>
+        dplyr::left_join( metadata_study,
+                          by = c("Unique_ID"="Unique_ID"))
+
+      anova_table <- displayed_data |> rstatix::anova_test(
+
+       formula =  stats::as.formula(paste(input$select_xy,
+                                          "~bodymass * ",
+                                          input$select_coloring_xy,
+                                          sep = ""))
+      )
+
+      rstatix::get_anova_table(anova_table)
     })
 
     #####Slider settings####
@@ -292,16 +373,19 @@ mod_dataexplorer_server <- function(id, dataobject, sabledatabase, parentsession
 
     #####Add selected data to further processing####
     shiny::observeEvent(input$add_data,{
+      #check if there is no assembled data
       if(is.null(dataobject$assembled_data)){
         dataobject$assembled_data <- dataobject$study_data |>
           dplyr::filter(elapsed_min/60 >= input$selectrange[1]&
                           elapsed_min/60 <= input$selectrange[2])|>
-          dplyr::mutate(hour =lubridate::hour(Date_Time_1))
+          dplyr::mutate(hour =lubridate::hour(Date_Time_1),
+                        ID = paste(RMPP_ID, Unique_ID, sep = "_"))
         shiny::showNotification("Data added to assembled data list. Please go
                                 to assembled data to explore further",
                                 duration = 7)
       }
       else{
+        #check if some columns are only present in one dataset, such as running wheels
         if(isTRUE(all(colnames(dataobject$assembled_data)%in% colnames(dataobject$study_data))&
                   all(colnames(dataobject$study_data)%in% colnames(dataobject$assembled_data))
                   )){
@@ -310,7 +394,8 @@ mod_dataexplorer_server <- function(id, dataobject, sabledatabase, parentsession
                             elapsed_min/60 <= input$selectrange[2])
           dataobject$assembled_data <- dplyr::rows_append(dataobject$assembled_data,
                                                           selected_data)|>
-            dplyr::mutate(hour =lubridate::hour(Date_Time_1))
+            dplyr::mutate(hour =lubridate::hour(Date_Time_1),
+                          ID = paste(RMPP_ID, Unique_ID, sep = "_"))
           shiny::showNotification("Data added to assembled data list. Please go
                                 to assembled data to explore further",
                                 duration = 7)
@@ -318,8 +403,12 @@ mod_dataexplorer_server <- function(id, dataobject, sabledatabase, parentsession
         }
         #if cols are missing from either dataset, add them as NA
         else{
+          dataobject$study_data <- dataobject$study_data |>
+            dplyr::mutate(ID = paste(RMPP_ID, Unique_ID, sep = "_"))
           cols_assembled <- colnames(dataobject$assembled_data)
           cols_dataset <- colnames(dataobject$study_data)
+
+          #check assembled data
           missing_cols_assembled <- cols_dataset[!cols_dataset %in% cols_assembled]
           if(length(missing_cols_assembled)!=0){
             for (i in 1:length(missing_cols_assembled)){
@@ -328,6 +417,8 @@ mod_dataexplorer_server <- function(id, dataobject, sabledatabase, parentsession
                 dplyr::mutate(!! paste0(new_col) := as.numeric(NA))
             }
           }
+
+          #check selected data
           missing_cols_dataset <- cols_assembled[!cols_assembled %in% cols_dataset]
           selected_data <- dataobject$study_data
           if (length(missing_cols_dataset)!=0){
@@ -350,6 +441,16 @@ mod_dataexplorer_server <- function(id, dataobject, sabledatabase, parentsession
         }
 
       }
+    })
+
+    #go to next page
+
+    shiny::observeEvent(input$data_processing,{
+      shiny::updateTabsetPanel(
+        session = parentsession,
+        inputId = "inTabset",
+        selected = "Assembleddata"
+      )
     })
 
   })

@@ -64,9 +64,10 @@ mod_assembled_data_server <- function(id,
                     shiny::selectizeInput(
                       inputId = ns("color_by"),
                       label = "Group by:",
-                      choices = c("Unique_ID", "cage_id", "system", "Gender", "Age",
+                      choices = c("ID", "cage_id", "system", "Gender", "Age",
                                   "Genotype", "Strain", "Temperature", "Treatment", "System", "RMPP_ID"),
-                      options = list(dropdownParent = "body")
+                      options = list(dropdownParent = "body"),
+                      selected = "RMPP_ID"
                     )
       ),
       shiny::uiOutput(
@@ -76,7 +77,7 @@ mod_assembled_data_server <- function(id,
                     shinyWidgets::prettySwitch(
                       inputId = ns("summarize"),
                       label = "Display data summaried for selected group",
-                      value = FALSE
+                      value = TRUE
                     )),
       shiny::plotOutput(
         outputId = ns("assembled_figure")
@@ -184,7 +185,12 @@ mod_assembled_data_server <- function(id,
         ggplot2::ylim(input$miny,
                       input$maxy)+
         ggplot2::ylab(input$display_parameter)+
-        ggplot2::xlab("Elapsed hours")
+        ggplot2::xlab("Hour")+
+        ggplot2::ggtitle("Circadian Summary")+
+        ggplot2::theme(
+          plot.title = ggplot2::element_text(size = 18)
+
+        )
 
 
     })
