@@ -324,7 +324,7 @@ mod_dataexplorer_server <- function(id, dataobject, sabledatabase, parentsession
      xy_plotly
 
     })
-
+    #render a table with ANOVA stats
     output$anovatable <- shiny::renderTable({
       req(input$display_parameter)
       metadata_study <- dataobject$metadata |>

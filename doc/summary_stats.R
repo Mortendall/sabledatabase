@@ -1,4 +1,6 @@
 library(duckplyr)
+library(tidyverse)
+library(patchwork)
 
 sabledata <- duckdb::dbConnect(duckdb::duckdb(
   dbdir = here::here("data/sabledata.duckdb")

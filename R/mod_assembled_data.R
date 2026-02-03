@@ -20,7 +20,7 @@ mod_assembled_data_ui <- function(id) {
         ),
         bslib::card(
           shiny::uiOutput(
-            outputId = ns("circadian_average")
+            outputId = ns("caloric_content")
           )
         )
       )
@@ -156,43 +156,78 @@ mod_assembled_data_server <- function(id,
                                    )))
     })
 
-    #####circadian_average####
-    #CHECK WHY THIS ISNT WORKING
-    output$circadian_average <- shiny::renderUI({
+    #####add caloric content to data####
+
+    output$caloric_content <- shiny::renderUI({
       req(dataobject$assembled_data)
+      shiny::tagList(
+        shiny::selectizeInput(
+          inputId = ns("select_variable"),
+          label = "Select variable for grouping",
+          choices = c("cage_id", "system", "Gender", "Age",
+                      "Genotype", "Strain", "Temperature", "Treatment"),
+          selected = "Treatment",
+          multiple = FALSE
+        ),
+        shinyWidgets::actionBttn(
+          inputId = ns("add_diet"),
+          label = "Add diet to group",
+          style = "jelly"
+        ),
+        rhandsontable::rHandsontableOutput(
+        outputId = ns("detected_groups")
+        ))
 
     })
 
-    output$circadian_average <- shiny::renderPlot({
-      req(input$miny)
-      req(input$maxy)
-      req(dataobject$assembled_data)
+    output$detected_groups <- rhandsontable::renderRHandsontable({
 
-      circadian_data <- dataobject$assembled_data |>
-        dplyr::group_by(!!rlang::sym(input$color_by), hour ) |>
-        dplyr::summarise(mean = mean(.data[[input$display_parameter]],
-                                     na.rm = TRUE))
 
-      ggplot2::ggplot(circadian_data,
-                      ggplot2::aes_string(
-                        x = "hour",
-                        y = "mean",
-                        color = input$color_by
-                      ))+
-        ggplot2::geom_line()+
-        ggplot2::theme_bw(base_size = 18,
-                          base_line_size = 2)+
-        ggplot2::ylim(input$miny,
-                      input$maxy)+
-        ggplot2::ylab(input$display_parameter)+
-        ggplot2::xlab("Hour")+
-        ggplot2::ggtitle("Circadian Summary")+
-        ggplot2::theme(
-          plot.title = ggplot2::element_text(size = 18)
+      dataobject$groups <- dataobject$assembled_data |>
+        dplyr::select(input$select_variable) |>
+        dplyr::distinct(.keep_all = FALSE) |>
+        dplyr::mutate(diet = NA) |>
+        dplyr::rename("Groups"=input$select_variable)
 
+      rhandsontable::rhandsontable(
+        data = dataobject$groups,
+        rowHeaders = FALSE
+      ) |>
+        rhandsontable::hot_col(
+          col = "Groups",
+          readOnly = T
+        ) |>
+        rhandsontable::hot_col(
+          col = "diet",
+          type = "dropdown",
+          source = c("chow",
+                     "HFD",
+                     "HFHS")
         )
+    })
 
+    #####add caloric content to diet data####
 
+    shiny::observeEvent(input$add_diet,{
+      dataobject$groups <- rhandsontable::hot_to_r(input$detected_groups)
+
+      if(any(is.na(dataobject$groups))){
+        shinyWidgets::sendSweetAlert(
+          title = "Group assignment missing",
+          text = "One or more groups are missing diet assignments",
+          type = "error"
+          )
+      }
+      else{
+        #####FIX THIS ERROR####
+        variable_name <- input$select_variable
+        dataobject$assembled_data <- dplyr::left_join(
+          dataobject$assembled_data,
+          dataobject$groups,
+          by = c("Treatment" = "Groups")
+        )
+        shiny::showNotification("Groups added")
+      }
     })
 
   })

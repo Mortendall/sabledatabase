@@ -9,7 +9,10 @@ metadata_list <- vector(mode = "list",
 
 metadata_list <- purrr::map(metadata_files,
                             ~readxl::read_xlsx(.x,
-                                               sheet = 2,
+                                               sheet = dplyr::if_else(
+                                                 condition = length(readxl::excel_sheets(.x))==2,
+                                                 true = 2,
+                                                 false = 1),
                                                col_names = T,col_types = "text"))
 
 metadata_frame <- dplyr::bind_rows(metadata_list) |>
@@ -19,12 +22,19 @@ metadata_frame <- dplyr::bind_rows(metadata_list) |>
 metadata_frame <- metadata_frame |>
   dplyr::mutate(
     System = dplyr::case_when(
+      System == "Sable1"~"1",
+      System == "Sable2"~"2",
+      System == "Sable3"~"3",
+      System == "Sable4"~"4",
+      System == "Sable5"~"5",
       System == "Sable 1"~"1",
       System == "Sable 2"~"2",
       System == "SABLE 2"~"2",
       System == "Sable 3"~"3",
       System == "Sable system used during run (1)"~"1",
       System == "Sable system used during run (2)"~"2",
+      System == "Sable 4"~ "4",
+      System == "Sable 5"~"5",
       .default = System
     ),
     Gender = dplyr::case_when(
@@ -73,3 +83,4 @@ metadata_frame <- metadata_frame |>
       .default = Treatment
     )
   )
+
