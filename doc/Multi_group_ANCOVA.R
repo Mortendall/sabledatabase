@@ -28,15 +28,12 @@ study_data_mod <- study_data |> dplyr::filter(elapsed_h<311)
 #get summary data
 displayed_data <-  study_data_mod |>
   dplyr::mutate(Unique_ID = paste(system, cage_id,sep = "_")) |>
-  dplyr::left_join( metadata,
-                    by = c("Unique_ID"="Unique_ID")) |>
-  dplyr::filter(!is.na(System)) |>
   dplyr::group_by(Unique_ID) |>
   dplyr::summarise(ee = mean(ee),
                    feed = mean(feed),
                    bodymass = mean(bodymass),
                    vo2 = mean(vo2),
-                   vco2 = mean(vco2))|>
+                   vco2 = mean(vco2)) |>
   dplyr::left_join( metadata,
                     by = c("Unique_ID"="Unique_ID")) |>
   dplyr::filter(Unique_ID != "sable2_8"& Unique_ID != "sable2_11")
@@ -60,9 +57,6 @@ xy_plot <- ggpubr::ggscatter(
 xy_plot
 
 #get ANOVA table
-
-
-
 
   anova_table <- displayed_data |> rstatix::anova_test(
 

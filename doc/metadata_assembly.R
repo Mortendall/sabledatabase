@@ -41,12 +41,16 @@ metadata_frame <- metadata_frame |>
       Gender == "-"~NA,
       Gender == "empty"~NA,
       tolower(Gender) == "f"~"Female",
+      Gender == "female"~"Female",
       Gender == "male"~"Male",
       tolower(Gender)== "m"~"Male",
       .default = Gender
     ),
     `Age (weeks)` = stringr::str_remove(`Age (weeks)`, " "),
     `Age (weeks)` = stringr::str_remove_all(`Age (weeks)`, "[:alpha:]"),
+    `Age (weeks)` = stringr::str_remove_all(`Age (weeks)`, "(?<=\\.)[:digit:]+"),
+    `Age (weeks)` = stringr::str_remove_all(`Age (weeks)`, "[:punct:](?![:digit:]+)"),
+    `Age (weeks)` = stringr::str_remove_all(`Age (weeks)`, "[:blank:]"),
     #go through studies and assign KO identity
     Strain = dplyr::case_when(
       tolower(Strain) == "c57bl6/n"~"C57BL/6N",

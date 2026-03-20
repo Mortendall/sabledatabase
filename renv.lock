@@ -378,31 +378,6 @@
       ],
       "Hash": "0cbf0435830e767ba9b292b313592362"
     },
-    "covrpage": {
-      "Package": "covrpage",
-      "Version": "0.2",
-      "Source": "GitHub",
-      "RemoteType": "github",
-      "RemoteHost": "api.github.com",
-      "RemoteUsername": "yonicd",
-      "RemoteRepo": "covrpage",
-      "RemoteRef": "master",
-      "RemoteSha": "bafeb195d1999b8c3a48186e26f59cafcdfa3670",
-      "Requirements": [
-        "R",
-        "covr",
-        "curl",
-        "git2r",
-        "remotes",
-        "rmarkdown",
-        "stats",
-        "testthat",
-        "utils",
-        "whisker",
-        "withr"
-      ],
-      "Hash": "9a2c852a207f4236c3beaef960e79785"
-    },
     "cpp11": {
       "Package": "cpp11",
       "Version": "0.5.2",

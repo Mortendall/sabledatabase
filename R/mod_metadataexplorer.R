@@ -210,6 +210,9 @@ mod_metadataexplorer_server <- function(id,
     #####Filter studies####
 
     shiny::observeEvent(input$find_studies,{
+
+
+
       if(isTRUE(input$exact)){
         selected_studies <- dataobject$metadata |>
           dplyr::filter(Gender %in% input$Gender&
@@ -220,7 +223,21 @@ mod_metadataexplorer_server <- function(id,
           )
       }
       else{
-        selected_studies <- dataobject$metadata |>
+        selected_studies <- dataobject$metadata
+
+        if(isTRUE(input$display_genotype)){
+          selected_studies <- selected_studies |>
+            dplyr::filter(Genotype %in% input$Genotype)
+        }
+
+        if(isTRUE(input$display_treatment)){
+          selected_studies <- selected_studies |>
+            dplyr::filter(Treatment %in% input$Treatment)
+
+        }
+
+
+        selected_studies <- selected_studies |>
           dplyr::filter(Gender %in% input$Gender|
                           Strain %in% input$Strain|
                           Diet %in% input$Diet|
@@ -230,15 +247,7 @@ mod_metadataexplorer_server <- function(id,
       }
 
 
-      if(isTRUE(input$display_genotype)){
-        selected_studies <- selected_studies |>
-          dplyr::filter(Genotype %in% input$Genotype)
-      }
 
-      if(isTRUE(input$display_treatment)){
-        selected_studies <- selected_studies |>
-          dplyr::filter(Treatment %in% input$Treatment)
-      }
 
       #convert age to numeric
       if(length(selected_studies[,1]!=0)){
