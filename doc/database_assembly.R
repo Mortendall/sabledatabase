@@ -21,7 +21,7 @@ data_files_list <- purrr::map(data_files_list,
 
 studies_list <- stringr::str_extract(
   names(data_files_list),
-  pattern = "(?<=/)RMPP-[:digit:]{4}-[:digit:]{3}A?B?_?[:alnum:]*_[:alnum:]+(?=\\.csv)"
+  pattern = "(?<=/)RMPP-[:digit:]{4}-[:digit:]{3}A?B?C?_?[:alnum:]*_[:alnum:]+(?=\\.csv)"
                                      )
 
 names(data_files_list)<- studies_list

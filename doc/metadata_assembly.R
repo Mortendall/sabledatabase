@@ -54,12 +54,16 @@ metadata_frame <- metadata_frame |>
     #go through studies and assign KO identity
     Strain = dplyr::case_when(
       tolower(Strain) == "c57bl6/n"~"C57BL/6N",
-
+      tolower(Strain) == "c57bl6 n" ~ "C57BL/6N",
       tolower(Strain) == "c57bl6/j"~"C57BL/6J",
+      tolower(Strain) =="c57bl6/jrj"~"C57BL/6JRJ",
       tolower(Strain) =="c57bl/6rj"~"C57BL/6JRJ",
       tolower(Strain)== "c57bl/6jrj"~"C57BL/6JRJ",
-      Strain == "B6"~"C57BL/6J",
+      tolower(Strain) == "b6"~"C57BL/6J",
       Strain == "BL6"~"C57BL/6J",
+      Strain =="b6n"~"C57BL/6N",
+      tolower(Strain)== "c57bl6ncrl"~"C57BL/6N",
+      tolower(Strain)== "c57bl6ncrl wildtype"~"C57BL/6N",
       .default = Strain
     ),
     Diet = dplyr::case_when(

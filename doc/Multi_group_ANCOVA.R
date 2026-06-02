@@ -62,13 +62,13 @@ xy_plot
 
     formula =  stats::as.formula("ee ~ bodymass * Treatment")
   )
-
+#no interaction
   #calculate ANCOVA
 
   ancova_table <- rstatix::anova_test(ee ~ bodymass + Treatment,
              data = displayed_data)
 
-
+#get posthoc data
   pwc <-  displayed_data |>
     rstatix::emmeans_test(ee ~ Treatment,
                                  covariate = bodymass,
