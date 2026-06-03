@@ -88,3 +88,82 @@ duckdb::dbDisconnect(sabledatabase)
 
 
 #test summary generator
+
+#####Manual fixes applied to modified database####
+
+#check studies that cannot be loaded
+# problematic_studies <- c("RMPP-2025-001",
+#                          "RMPP-2025-014",
+#                          "RMPP-2025-035",
+#                          "RMPP-2026-013A",
+#                          "RMPP-2026-027")
+# metadata_subset <- metadata |>
+#   dplyr::filter(RMPP_ID %in% problematic_studies) |>
+#   View()
+#documentation for fixed studies
+#RMPP-2026-013A
+# metadata <- metadata |>
+#   dplyr::mutate(
+#     Cage =
+#       dplyr::case_when(
+#         RMPP_ID == "RMPP-2026-013A"~ `Cage number`,
+#         .default = Cage
+#       )
+#   )
+
+#RMPP-2025-001
+# database_data <- dm::tbl(sabledatabase,"RMPP-2025-001") |>
+#   dplyr::collect() |>
+#   dplyr::mutate(system = dplyr::case_when(
+#     system == "Sable3"~"sable3"
+#   ))
+
+# duckdb::dbWriteTable(sabledatabase,
+#                      name = "RMPP-2025-001",
+#                      value = database_data,
+#                      overwrite = T)
+
+
+
+
+#RMPP-2025-014
+#wrong datafiles added - this should be fixed by replacing the file and running the script again
+
+# duckdb::dbWriteTable(sabledatabase,"RMPP-2025-014",study_list_collapsed$`RMPP-2025-014`, overwrite = T)
+
+#RMPP-2025-035
+
+#wrongly annotated to Sable4
+
+# database_data <- dm::tbl(sabledatabase,"RMPP-2025-035") |>
+#   dplyr::collect() |>
+#   dplyr::mutate(system = dplyr::case_when(
+#     system == "sable4"~"sable3"
+#   ))
+
+# duckdb::dbWriteTable(sabledatabase,
+#                      name = "RMPP-2025-035",
+#                      value = database_data,
+#                      overwrite = T)
+
+#RMPP-2026-027
+
+# database_data <- dm::tbl(sabledatabase,"RMPP-2026-027") |>
+#   dplyr::collect() |>
+#   dplyr::mutate(system = dplyr::case_when(
+#     system == "sable1"~"sable2"
+#   ))
+
+# duckdb::dbWriteTable(sabledatabase,
+#                        name = "RMPP-2026-027",
+#                        value = database_data,
+#                        overwrite = T)
+#this study should be removed from database
+#duckdb::dbRemoveTable(sabledatabase, "RMPP-2026-027")
+# metadata <- dplyr::tbl(sabledatabase, "metadata") |>
+#   dplyr::collect() |>
+#   dplyr::filter(!RMPP_ID=="RMPP-2026-027")
+
+# duckdb::dbWriteTable(sabledatabase,
+#                      name = "metadata",
+#                      value = metadata, overwrite = T)

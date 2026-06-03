@@ -166,6 +166,7 @@ mod_dataexplorer_server <- function(id, dataobject, sabledatabase, parentsession
     })
 
     #####render graph####
+    #TODO: change to rolling SEM
 
     output$study_summary <- shiny::renderPlot({
       req(input$display_parameter)
@@ -236,17 +237,27 @@ mod_dataexplorer_server <- function(id, dataobject, sabledatabase, parentsession
           size = "sm"
         ),
         shinyWidgets::actionBttn(
-          inputId =ns("add_data"),
-          label = "Add selected groups and data window to data processing",
+          inputId = ns("save_data"),
+          label = "Save changes to dataset",
           style = "gradient",
           size = "sm"
         ),
+        # shinyWidgets::actionBttn(
+        #   inputId =ns("add_data"),
+        #   label = "Add selected groups and data window to data processing",
+        #   style = "gradient",
+        #   size = "sm"
+        # ),
+        ##NB function deprecated
         shinyWidgets::actionBttn(
           inputId = ns("data_processing"),
           label = "Go to data processing",
           style = "gradient",
           size = "sm"
         )
+        # ,
+#         add button to crop dataset based on selected range and
+#         write it to the copy of the sable database
       )
     })
 
@@ -372,76 +383,77 @@ mod_dataexplorer_server <- function(id, dataobject, sabledatabase, parentsession
     })
 
     #####Add selected data to further processing####
-    shiny::observeEvent(input$add_data,{
-      #check if there is no assembled data
-      if(is.null(dataobject$assembled_data)){
-        dataobject$assembled_data <- dataobject$study_data |>
-          dplyr::filter(elapsed_min/60 >= input$selectrange[1]&
-                          elapsed_min/60 <= input$selectrange[2])|>
-          dplyr::mutate(hour =lubridate::hour(Date_Time_1),
-                        ID = paste(RMPP_ID, Unique_ID, sep = "_"))
-        shiny::showNotification("Data added to assembled data list. Please go
-                                to assembled data to explore further",
-                                duration = 7)
-      }
-      else{
-        #check if some columns are only present in one dataset, such as running wheels
-        if(isTRUE(all(colnames(dataobject$assembled_data)%in% colnames(dataobject$study_data))&
-                  all(colnames(dataobject$study_data)%in% colnames(dataobject$assembled_data))
-                  )){
-          selected_data <- dataobject$study_data |>
-            dplyr::filter(elapsed_min/60 >= input$selectrange[1]&
-                            elapsed_min/60 <= input$selectrange[2])
-          dataobject$assembled_data <- dplyr::rows_append(dataobject$assembled_data,
-                                                          selected_data)|>
-            dplyr::mutate(hour =lubridate::hour(Date_Time_1),
-                          ID = paste(RMPP_ID, Unique_ID, sep = "_"))
-          shiny::showNotification("Data added to assembled data list. Please go
-                                to assembled data to explore further",
-                                duration = 7)
-
-        }
-        #if cols are missing from either dataset, add them as NA
-        else{
-          dataobject$study_data <- dataobject$study_data |>
-            dplyr::mutate(ID = paste(RMPP_ID, Unique_ID, sep = "_"))
-          cols_assembled <- colnames(dataobject$assembled_data)
-          cols_dataset <- colnames(dataobject$study_data)
-
-          #check assembled data
-          missing_cols_assembled <- cols_dataset[!cols_dataset %in% cols_assembled]
-          if(length(missing_cols_assembled)!=0){
-            for (i in 1:length(missing_cols_assembled)){
-              new_col <- missing_cols_assembled[i]
-              dataobject$assembled_data <- dataobject$assembled_data |>
-                dplyr::mutate(!! paste0(new_col) := as.numeric(NA))
-            }
-          }
-
-          #check selected data
-          missing_cols_dataset <- cols_assembled[!cols_assembled %in% cols_dataset]
-          selected_data <- dataobject$study_data
-          if (length(missing_cols_dataset)!=0){
-            for (i in 1:length(missing_cols_dataset)){
-              new_col <- missing_cols_dataset[i]
-              selected_data <- selected_data |>
-                dplyr::mutate(!! paste0(new_col) := as.numeric(NA))
-            }
-          }
-
-          selected_data <- selected_data |>
-            dplyr::filter(elapsed_min/60 >= input$selectrange[1]&
-                            elapsed_min/60 <= input$selectrange[2])
-          dataobject$assembled_data <- dplyr::rows_append(dataobject$assembled_data,
-                                                          selected_data) |>
-            dplyr::mutate(hour =lubridate::hour(Date_Time_1))
-          shiny::showNotification("Data added to assembled data list. Please go
-                                to assembled data to explore further",
-                                duration = 7)
-        }
-
-      }
-    })
+    ##NB! this functionality has been deprecated
+    # shiny::observeEvent(input$add_data,{
+    #   #check if there is no assembled data
+    #   if(is.null(dataobject$assembled_data)){
+    #     dataobject$assembled_data <- dataobject$study_data |>
+    #       dplyr::filter(elapsed_min/60 >= input$selectrange[1]&
+    #                       elapsed_min/60 <= input$selectrange[2])|>
+    #       dplyr::mutate(hour =lubridate::hour(Date_Time_1),
+    #                     ID = paste(RMPP_ID, Unique_ID, sep = "_"))
+    #     shiny::showNotification("Data added to assembled data list. Please go
+    #                             to assembled data to explore further",
+    #                             duration = 7)
+    #   }
+    #   else{
+    #     #check if some columns are only present in one dataset, such as running wheels
+    #     if(isTRUE(all(colnames(dataobject$assembled_data)%in% colnames(dataobject$study_data))&
+    #               all(colnames(dataobject$study_data)%in% colnames(dataobject$assembled_data))
+    #               )){
+    #       selected_data <- dataobject$study_data |>
+    #         dplyr::filter(elapsed_min/60 >= input$selectrange[1]&
+    #                         elapsed_min/60 <= input$selectrange[2])
+    #       dataobject$assembled_data <- dplyr::rows_append(dataobject$assembled_data,
+    #                                                       selected_data)|>
+    #         dplyr::mutate(hour =lubridate::hour(Date_Time_1),
+    #                       ID = paste(RMPP_ID, Unique_ID, sep = "_"))
+    #       shiny::showNotification("Data added to assembled data list. Please go
+    #                             to assembled data to explore further",
+    #                             duration = 7)
+    #
+    #     }
+    #     #if cols are missing from either dataset, add them as NA
+    #     else{
+    #       dataobject$study_data <- dataobject$study_data |>
+    #         dplyr::mutate(ID = paste(RMPP_ID, Unique_ID, sep = "_"))
+    #       cols_assembled <- colnames(dataobject$assembled_data)
+    #       cols_dataset <- colnames(dataobject$study_data)
+    #
+    #       #check assembled data
+    #       missing_cols_assembled <- cols_dataset[!cols_dataset %in% cols_assembled]
+    #       if(length(missing_cols_assembled)!=0){
+    #         for (i in 1:length(missing_cols_assembled)){
+    #           new_col <- missing_cols_assembled[i]
+    #           dataobject$assembled_data <- dataobject$assembled_data |>
+    #             dplyr::mutate(!! paste0(new_col) := as.numeric(NA))
+    #         }
+    #       }
+    #
+    #       #check selected data
+    #       missing_cols_dataset <- cols_assembled[!cols_assembled %in% cols_dataset]
+    #       selected_data <- dataobject$study_data
+    #       if (length(missing_cols_dataset)!=0){
+    #         for (i in 1:length(missing_cols_dataset)){
+    #           new_col <- missing_cols_dataset[i]
+    #           selected_data <- selected_data |>
+    #             dplyr::mutate(!! paste0(new_col) := as.numeric(NA))
+    #         }
+    #       }
+    #
+    #       selected_data <- selected_data |>
+    #         dplyr::filter(elapsed_min/60 >= input$selectrange[1]&
+    #                         elapsed_min/60 <= input$selectrange[2])
+    #       dataobject$assembled_data <- dplyr::rows_append(dataobject$assembled_data,
+    #                                                       selected_data) |>
+    #         dplyr::mutate(hour =lubridate::hour(Date_Time_1))
+    #       shiny::showNotification("Data added to assembled data list. Please go
+    #                             to assembled data to explore further",
+    #                             duration = 7)
+    #     }
+    #
+    #   }
+    # })
 
     #go to next page
 
@@ -451,6 +463,20 @@ mod_dataexplorer_server <- function(id, dataobject, sabledatabase, parentsession
         inputId = "inTabset",
         selected = "Assembleddata"
       )
+    })
+
+    shiny::observeEvent(input$save_data,{
+      dataobject$study_data <- dataobject$study_data |>
+        dplyr::filter(elapsed_min/60>=input$selectrange[1]&
+                        elapsed_min/60<=input$selectrange[2])
+
+      saved_data <- dataobject$study_data |>
+        dplyr::select(Date_Time_1:xytot)
+
+      duckdb::dbWriteTable(sabledatabase,
+                           name = input$select_study,
+                           value = saved_data,
+                           overwrite = T)
     })
 
   })

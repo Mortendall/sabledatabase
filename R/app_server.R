@@ -9,7 +9,7 @@ app_server <- function(input, output, session) {
   dataobject <- shiny::reactiveValues()
   sabledatabase <- duckdb::dbConnect(
     duckdb::duckdb(
-      dbdir = here::here("data/sabledata.duckdb")
+      dbdir = here::here("data/sabledata_modified.duckdb")
     ))
   dataobject$metadata <- dm::tbl(sabledatabase, "metadata") |>
     dplyr::collect()

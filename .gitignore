@@ -1,1 +1,5 @@
 .Rproj.user
+data
+data-raw
+dev
+doc/unused_meta_and_data/
